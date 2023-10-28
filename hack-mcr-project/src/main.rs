@@ -1,26 +1,44 @@
 use leptos::*;
+use serde::{Deserialize, Serialize};
 
 fn main() {
+    console_error_panic_hook::set_once();
     mount_to_body(|| view! { <App /> });
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 struct Definition {
     word: String,
     definition: String,
+    phonetics: String,
 }
 impl Definition {
-    pub fn new(word: String, definition: String) -> Self {
-        Self { word, definition }
+    pub fn new(word: String, definition: String, phonetics: String) -> Self {
+        Self {
+            word,
+            definition,
+            phonetics,
+        }
     }
 }
 
 #[component]
 fn App() -> impl IntoView {
-    let (definitions, set_definitions) = create_signal(vec![
-        Definition::new("Potato".into(), "A cool vegetable!".into()),
-        Definition::new("Apple".into(), "A really cool fruit!\nSuper cool!".into()),
-    ]);
+    // let (definitions, set_definitions) = create_signal(vec![
+    //     Definition::new("Potato".into(), "A cool vegetable!".into(), ""),
+    //     Definition::new("Apple".into(), "A really cool fruit!\nSuper cool!".into()),
+    // ]);
+    let data_element = web_sys::window()
+        .unwrap()
+        .document()
+        .unwrap()
+        .get_element_by_id("dictionary-data")
+        .unwrap();
+
+    let data = Signal::derive(move || data_element.inner_html());
+    let definitions: Signal<Vec<Definition>> =
+        Signal::derive(move || data.with(|x| serde_json::from_str(x).unwrap()));
+
     let (current_definition, set_current_definition) = create_signal(None);
     view! {
         <Video id="tI8OqpkOVzs" />
@@ -54,7 +72,7 @@ fn DefinitionView(
 
 #[component]
 fn Definitions(
-    definitions: ReadSignal<Vec<Definition>>,
+    definitions: Signal<Vec<Definition>>,
     set_definition: WriteSignal<Option<Definition>>,
 ) -> impl IntoView {
     view! {
