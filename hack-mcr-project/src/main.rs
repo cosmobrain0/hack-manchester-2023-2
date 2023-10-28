@@ -21,9 +21,13 @@ fn App() -> impl IntoView {
         Definition::new("Potato".into(), "A cool vegetable!".into()),
         Definition::new("Apple".into(), "A really cool fruit!\nSuper cool!".into()),
     ]);
+    let (current_definition, set_current_definition) = create_signal(None);
     view! {
         <Video id="tI8OqpkOVzs" />
-        <Definitions definitions />
+        <div id="full-definition-view-wrapper">
+            <FullDefinitionView definition={current_definition} />
+        </div>
+        <Definitions definitions set_definition=set_current_definition />
     }
 }
 
@@ -35,20 +39,44 @@ fn Video(#[prop(into)] id: String) -> impl IntoView {
 }
 
 #[component]
-fn DefinitionView(definition: Definition) -> impl IntoView {
+fn DefinitionView(
+    definition: Definition,
+    set_definition: WriteSignal<Option<Definition>>,
+) -> impl IntoView {
+    let word = definition.word.clone();
     view! {
-        <div class="definition-wrapper">
-            <h2 class="definition-word"> {definition.word} </h2>
-            <p class="definition-info"> {definition.definition} </p>
+        <div class="definition-wrapper" on:click = move |_| set_definition.set(Some(definition.clone()))>
+            <h2 class="definition-word"> {word} </h2>
+            // <p class="definition-info"> {definition.definition} </p>
         </div>
     }
 }
 
 #[component]
-fn Definitions(definitions: ReadSignal<Vec<Definition>>) -> impl IntoView {
+fn Definitions(
+    definitions: ReadSignal<Vec<Definition>>,
+    set_definition: WriteSignal<Option<Definition>>,
+) -> impl IntoView {
     view! {
         <div id="definition-list-wrapper">
-            <For each={move || definitions.get().into_iter()} key={move |definition| definition.word.to_owned()} children={move |item| view!{ <DefinitionView definition=item.clone() /> }} />
+            <For each={move || definitions.get().into_iter()} key={move |definition| definition.word.to_owned()} children={move |item| view!{ <DefinitionView definition=item.clone() set_definition /> }} />
         </div>
+    }
+}
+
+#[component]
+fn FullDefinitionView(definition: ReadSignal<Option<Definition>>) -> impl IntoView {
+    move || {
+        definition.with(|d| {
+            if let Some(d) = d {
+                view! {
+                    <h2 id="full-definition-word"> {&d.word} </h2>
+                    <p id="full-definition-info"> {&d.definition} </p>
+                }
+                .into_view()
+            } else {
+                ().into_view()
+            }
+        })
     }
 }
