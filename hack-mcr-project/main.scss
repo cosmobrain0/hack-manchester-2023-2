@@ -1,0 +1,25 @@
+* {
+  margin: 0px;
+  padding: 0px;
+  box-sizing: border-box;
+}
+
+body {
+  
+  background: #222;
+  color: #ccc;
+
+  #definition-list-wrapper {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+
+    .definition-wrapper {
+      display: inline-block;
+      border: 2px solid #ccc;
+      background: #333;
+      width: 90%;
+      height: 90%;
+      padding: 0.5em;
+    }    
+  }
+}
