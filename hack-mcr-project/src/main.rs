@@ -1,3 +1,4 @@
+#![feature(iter_intersperse)]
 use leptos::{
     html::{param, Input},
     *,
@@ -70,14 +71,19 @@ fn ViewPage() -> impl IntoView {
     let definitions: Signal<Vec<Definition>> =
         Signal::derive(move || data.with(|x| serde_json::from_str(x).unwrap()));
 
-    let (current_definition, set_current_definition) = create_signal(None);
+    let (current_definition, set_current_definition): (
+        ReadSignal<Option<Definition>>,
+        WriteSignal<Option<Definition>>,
+    ) = create_signal(None);
+    provide_context(set_current_definition);
 
     view! {
         <Video id=id().unwrap() />
         <div id="full-definition-view-wrapper">
             <FullDefinitionView definition={current_definition} />
         </div>
-        <Definitions definitions set_definition=set_current_definition />
+        // <Definitions definitions set_definition=set_current_definition />
+        <Transcript text="The quick brown fox jumps over the lazy dog.".into() />
     }
 }
 
@@ -106,13 +112,14 @@ fn DefinitionView(
 fn Transcript(text: String) -> impl IntoView {
     view! {
         <div id="transcript">
-            text.split_whitespace().map(|word| view!{ <TranscriptWord word=word.to_owned() /> }.into_view()).collect_view()
+            {text.split_whitespace().inspect(|x| logging::log!("{}", x)).map(|word| view!{ <TranscriptWord word=word.to_owned() /> " " }.into_view()).collect_view()}
         </div>
     }
 }
 
 #[component]
-fn TranscriptWord(word: String, set_definition: WriteSignal<Option<Definition>>) -> impl IntoView {
+fn TranscriptWord(word: String) -> impl IntoView {
+    let set_definition = expect_context::<WriteSignal<Option<Definition>>>();
     let word_to_show = word.clone();
     view! {
         <span on:click=move |_| set_definition_from_word(set_definition, &word) class="transcript-word">{word_to_show}</span>
@@ -120,11 +127,32 @@ fn TranscriptWord(word: String, set_definition: WriteSignal<Option<Definition>>)
 }
 
 fn get_definitions() -> Vec<Definition> {
-    vec![]
+    let data_element = web_sys::window()
+        .unwrap()
+        .document()
+        .unwrap()
+        .get_element_by_id("dictionary-data")
+        .unwrap();
+    let values: Vec<Definition> = serde_json::from_str(&data_element.inner_html()).unwrap();
+    values
 }
 
 fn set_definition_from_word(set_definition: WriteSignal<Option<Definition>>, word: &str) {
-    let Some(definition) = get_definitions().into_iter().find(|x| x.word.as_str() == word) else { return; };
+    let word_pattern = regex::Regex::new(r#"\w+"#);
+    let thing = word_pattern
+        .unwrap()
+        .captures_iter(word)
+        .map(|x| x.extract::<0>().0)
+        .collect::<String>()
+        .to_lowercase();
+    logging::log!("Regex match: {thing}");
+
+    let Some(definition) = get_definitions()
+        .into_iter()
+        .find(|x| x.word.as_str() == thing)
+    else {
+        return;
+    };
     set_definition.set(Some(definition));
 }
 
