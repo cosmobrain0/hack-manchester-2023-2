@@ -9,3 +9,6 @@
 
 ## Unknown
 - make the website pretty
+
+# VIDEO
+https://www.youtube.com/watch?v=tI8OqpkOVzs
