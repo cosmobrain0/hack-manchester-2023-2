@@ -1,7 +1,8 @@
-const webster_api_key = '79c9e581-8088-4ce8-9bbb-fa5417a4ed0f'
+const WEBSTER_API_KEY = '79c9e581-8088-4ce8-9bbb-fa5417a4ed0f';
+const YOUTUBE_API_KEY = 'AIzaSyDyzPnArm38HRDDlPcE0p65eCwdZOq8FPE'
 
 async function getWordInfo(word) {
-    let response = await fetch(`https://www.dictionaryapi.com/api/v3/references/sd3/json/${word}?key=${webster_api_key.toLowerCase()}`);
+    let response = await fetch(`https://www.dictionaryapi.com/api/v3/references/sd3/json/${word}?key=${WEBSTER_API_KEY.toLowerCase()}`);
     let data = await response.json();
     let result = [];
 
@@ -26,7 +27,7 @@ async function getWordInfo(word) {
 let definitions = [];
 let promises = "The quick brown fox jumps over the lazy dog".split(" ").map(x => {
     return getWordInfo(x).then(x => {
-        console.log("defining a thing: " + x);
+        //console.log("defining a thing: " + x);
         definitions.push(x);
     })
 });
@@ -46,3 +47,15 @@ const uploadDefinitions = () => {
 // return value of getWordInfo)
 // and stringify the array
 // and put it into the document with id "dictionary-data"
+
+async function getVideoCaptions(videoID){
+    const captionResourceResponse = await fetch(`https://youtube.googleapis.com/youtube/v3/captions?part=snippet&videoId=${videoID}&key=${YOUTUBE_API_KEY}`);
+    let captionResourceData = await captionResourceResponse.json();
+    let captionResourceID = captionResourceData['items'][0]['id']
+
+    const captionTrackResponse = await fetch(`https://youtube.googleapis.com/youtube/v3/captions/${captionResourceID}?key=${YOUTUBE_API_KEY}`)
+    
+    return captionTrackResponse;
+}
+let testID = 'DxL2HoqLbyA';
+getVideoCaptions(testID).then(data=> console.log(data))
