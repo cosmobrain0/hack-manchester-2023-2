@@ -2,24 +2,64 @@
   margin: 0px;
   padding: 0px;
   box-sizing: border-box;
+  font-family: 'Kanit', sans-serif;
+  font-family: 'Montserrat', sans-serif;
 }
 
 body {
-  
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   background: #222;
   color: #ccc;
 
-  #definition-list-wrapper {
-    display: grid;
-    grid-template-columns: repeat(5, 1fr);
-
-    .definition-wrapper {
-      display: inline-block;
-      border: 2px solid #ccc;
-      background: #333;
-      width: 90%;
-      height: 90%;
-      padding: 0.5em;
-    }    
+  a{
+    color: white;
   }
+  .title{
+    font-size: 3rem;
+    align-items: center;
+    padding: 2rem 0;
+    color: rgb(240, 240, 32);
+  }
+  
+  #video-and-transcript-flex-wrapper{
+    display: flex;
+    align-items: start;
+  }
+  #video-and-transcript-flex-wrapper>*{
+    padding: 0.5rem;
+  }
+  #transcript-flex-wrapper > *{
+    padding: .5rem .5rem;
+    
+  }
+  #full-definition-view-wrapper{
+    padding: 0;
+    
+  }
+  #full-definition-word{
+    color: white;
+  }
+  #full-definition-info{
+    padding-bottom: 0.5rem;
+  }
+  #transcript{
+    border: .2rem solid #fff;
+    border-radius: 1rem;
+    line-height: 1.4rem;
+  }
+  #word-phonetics-wrapper{
+    display: flex;
+    flex-direction: column;
+    padding-bottom: .4rem;
+    *{
+      color: white;
+      padding-right: 1rem;
+    }
+    p{
+      font-size: 1.2rem;
+    }
+  }
+
 }

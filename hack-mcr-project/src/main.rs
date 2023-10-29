@@ -101,12 +101,27 @@ fn ViewPage() -> impl IntoView {
     request_animation_frame(g.borrow().as_ref().unwrap());
 
     view! {
-        <Video id=id().unwrap() />
-        <div id="full-definition-view-wrapper">
-            <FullDefinitionView definition={current_definition} />
+        <h1 class="title">Ducktitles</h1>
+        <div id="video-and-transcript-flex-wrapper">
+            <div id="video-wrapper">
+                <Video id=id().unwrap() />
+            </div>
+
+
+            // <Definitions definitions set_definition=set_current_definition />
+            <div id = "transcript-flex-wrapper">
+                <div id="full-definition-view-wrapper">
+                    <FullDefinitionView definition={current_definition} />
+                </div>
+                <Transcript text=caption_data />
+
+            </div>
         </div>
-        // <Definitions definitions set_definition=set_current_definition />
-        <Transcript text=caption_data />
+        <footer>
+
+            <p>Created for <a href = "https://hackmanchester.co.uk" target = "_blank">Hac JR Manchester 2023</a></p>
+            <p>By Affan Siddiqui and Felix Geupel</p>
+        </footer>
     }
 }
 
@@ -232,7 +247,10 @@ fn FullDefinitionView(definition: ReadSignal<Option<Definition>>) -> impl IntoVi
         definition.with(|d| {
             if let Some(d) = d {
                 view! {
-                    <h2 id="full-definition-word"> {&d.word} </h2>
+                    <div id="word-phonetics-wrapper">
+                        <h2 id="full-definition-word"> {&d.word} </h2>
+                        <p>{&d.phonetics}</p>
+                    </div>
                     <p id="full-definition-info"> {&d.definition} </p>
                 }
                 .into_view()
