@@ -25,11 +25,9 @@ async function getWordInfo(word) {
 }   
 
 let definitions = [];
-let promises = "The quick brown fox jumps over the lazy dog".split(" ").map(x => {
-    return getWordInfo(x).then(x => {
-        //console.log("defining a thing: " + x);
-        definitions.push(x);
-    })
+let promises = "The quick brown fox jumps over the lazy dog".split(" ").map(async x => {
+    const definition = await getWordInfo(x);
+    definitions.push(definition);
 });
 window.addEventListener('load', () => {
     console.log("loaded");
@@ -49,13 +47,14 @@ const uploadDefinitions = () => {
 // and put it into the document with id "dictionary-data"
 
 async function getVideoCaptions(videoID){
-    const captionResourceResponse = await fetch(`https://youtube.googleapis.com/youtube/v3/captions?part=snippet&videoId=${videoID}&key=${YOUTUBE_API_KEY}`);
-    let captionResourceData = await captionResourceResponse.json();
-    let captionResourceID = captionResourceData['items'][0]['id']
+    // const captionResourceResponse = await fetch(`https://youtube.googleapis.com/youtube/v3/captions?part=snippet&videoId=${videoID}&key=${YOUTUBE_API_KEY}`);
+    // let captionResourceData = await captionResourceResponse.json();
+    // let captionResourceID = captionResourceData['items'][0]['id']
 
-    const captionTrackResponse = await fetch(`https://youtube.googleapis.com/youtube/v3/captions/${captionResourceID}?key=${YOUTUBE_API_KEY}`)
+    // const captionTrackResponse = await fetch(`https://youtube.googleapis.com/youtube/v3/captions/${captionResourceID}?key=${YOUTUBE_API_KEY}`)
     
-    return captionTrackResponse;
+    // return captionTrackResponse;
+   
 }
 let testID = 'DxL2HoqLbyA';
 getVideoCaptions(testID).then(data=> console.log(data))
