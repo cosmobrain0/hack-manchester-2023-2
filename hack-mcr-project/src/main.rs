@@ -90,7 +90,8 @@ fn ViewPage() -> impl IntoView {
 #[component]
 fn Video(#[prop(into)] id: String) -> impl IntoView {
     view! {
-        <iframe width="560" height="315" src=format!("https://www.youtube.com/embed/{id}?si=dyXK0B1u1LzLR42f") title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+        // <iframe width="560" height="315" src=format!("https://www.youtube.com/embed/{id}?si=dyXK0B1u1LzLR42f") title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+        <iframe src="https://player.vimeo.com/video/877547033?title=0&amp;byline=0&amp;portrait=0&amp;speed=0&amp;badge=0&amp;autopause=0&amp;player_id=0&amp;app_id=58479" width={(1920/2).to_string()} height={(1080/2).to_string()} frameborder="0" allow="fullscreen; picture-in-picture" allowfullscreen title="Test Video Title" />
     }
 }
 

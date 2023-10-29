@@ -47,14 +47,39 @@ const uploadDefinitions = () => {
 // and put it into the document with id "dictionary-data"
 
 async function getVideoCaptions(videoID){
-    // const captionResourceResponse = await fetch(`https://youtube.googleapis.com/youtube/v3/captions?part=snippet&videoId=${videoID}&key=${YOUTUBE_API_KEY}`);
-    // let captionResourceData = await captionResourceResponse.json();
-    // let captionResourceID = captionResourceData['items'][0]['id']
+    const accessToken = '18a5a88f47f3483cd44c88a70a2a747e';
+    const videoId = '877547033';
 
-    // const captionTrackResponse = await fetch(`https://youtube.googleapis.com/youtube/v3/captions/${captionResourceID}?key=${YOUTUBE_API_KEY}`)
-    
-    // return captionTrackResponse;
-   
+    const apiUrl = `https://api.vimeo.com/videos/${videoId}/texttracks`;
+    const headers = {
+      'Authorization': `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    };
+    let hlsLink;
+
+    fetch(apiUrl, {
+      method: 'GET',
+      headers: headers,
+    })
+      .then(response => {
+        if (response.ok) {
+          return response.json();
+        } else {
+          throw new Error('Error');
+        }
+      })
+      .then(data => {
+        // Handle the video information in the data variable
+        hlsLink = data['data'][0]['hls_link']
+        fetch(hlsLink)
+        .then((response) => response.text())
+        .then((data)=>console.log(data));
+    })
+      .catch(error => {
+        // Handle any errors here
+        console.error(error);
+      });
+      console.log(hlsLink)
 }
 let testID = 'DxL2HoqLbyA';
 getVideoCaptions(testID).then(data=> console.log(data))
