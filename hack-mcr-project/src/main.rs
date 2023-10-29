@@ -5,6 +5,9 @@ use leptos::{
 };
 use leptos_router::*;
 use serde::{Deserialize, Serialize};
+use std::cell::RefCell;
+use std::rc::Rc;
+use wasm_bindgen::{closure::Closure, JsCast};
 
 fn main() {
     console_error_panic_hook::set_once();
@@ -77,21 +80,57 @@ fn ViewPage() -> impl IntoView {
     ) = create_signal(None);
     provide_context(set_current_definition);
 
+    let (caption_data, set_caption_data) = create_signal(None);
+
+    let f = Rc::new(RefCell::new(None));
+    let g = f.clone();
+    *g.borrow_mut() = Some(Closure::wrap(Box::new(move || {
+        request_animation_frame(f.borrow().as_ref().unwrap());
+        let Some(data) = get_caption_data() else {
+            return;
+        };
+        if caption_data.with_untracked(|x| x.is_some()) {
+            return;
+        }
+        logging::log!("Hi there! {}", &data);
+        let caption_data = Caption::parse_from_data(data);
+        logging::log!("Data: {:#?}", &caption_data);
+        set_caption_data.set(Some(caption_data));
+    }) as Box<dyn FnMut()>));
+
+    request_animation_frame(g.borrow().as_ref().unwrap());
+
     view! {
         <Video id=id().unwrap() />
         <div id="full-definition-view-wrapper">
             <FullDefinitionView definition={current_definition} />
         </div>
         // <Definitions definitions set_definition=set_current_definition />
-        <Transcript text="The quick brown fox jumps over the lazy dog.".into() />
+        <Transcript text=caption_data />
     }
+}
+
+fn request_animation_frame(f: &Closure<dyn FnMut()>) {
+    web_sys::window()
+        .unwrap()
+        .request_animation_frame(f.as_ref().unchecked_ref())
+        .expect("should register `requestAnimationFrame` OK");
+}
+
+fn get_caption_data() -> Option<String> {
+    web_sys::window()
+        .unwrap()
+        .document()
+        .unwrap()
+        .get_element_by_id("captions")
+        .map(|x| x.inner_html())
+        .filter(|x| !x.is_empty() && !x.chars().all(|x| x.is_whitespace()))
 }
 
 #[component]
 fn Video(#[prop(into)] id: String) -> impl IntoView {
     view! {
-        // <iframe width="560" height="315" src=format!("https://www.youtube.com/embed/{id}?si=dyXK0B1u1LzLR42f") title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
-        <iframe src="https://player.vimeo.com/video/877547033?title=0&amp;byline=0&amp;portrait=0&amp;speed=0&amp;badge=0&amp;autopause=0&amp;player_id=0&amp;app_id=58479" width={(1920/2).to_string()} height={(1080/2).to_string()} frameborder="0" allow="fullscreen; picture-in-picture" allowfullscreen title="Test Video Title" />
+        <iframe id="video-player" src="https://player.vimeo.com/video/877547033?title=0&amp;byline=0&amp;portrait=0&amp;speed=0&amp;badge=0&amp;autopause=0&amp;player_id=0&amp;app_id=58479&amp;transcript=false" width={(1920/2).to_string()} height={(1080/2).to_string()} frameborder="0" allow="fullscreen; picture-in-picture" allowfullscreen title="Test Video Title" />
     }
 }
 
@@ -110,10 +149,28 @@ fn DefinitionView(
 }
 
 #[component]
-fn Transcript(text: String) -> impl IntoView {
+fn Transcript(text: ReadSignal<Option<Vec<Caption>>>) -> impl IntoView {
+    let text_output = move || {
+        let thing = text.with(|x| {
+            x.as_ref().map(|x| {
+                x.iter()
+                    .map(|x| format!("{data}\n", data = x.data))
+                    .collect::<String>()
+                    .split_whitespace()
+                    .map(|word| view! { <TranscriptWord word=word.to_owned() /> " " }.into_view())
+                    .collect_view()
+            })
+        });
+        if let Some(result) = thing {
+            result
+        } else {
+            "Loading...".into_view()
+        }
+    };
     view! {
         <div id="transcript">
-            {text.split_whitespace().inspect(|x| logging::log!("{}", x)).map(|word| view!{ <TranscriptWord word=word.to_owned() /> " " }.into_view()).collect_view()}
+            // {text.split_whitespace().inspect(|x| logging::log!("{}", x)).map(|word| view!{ <TranscriptWord word=word.to_owned() /> " " }.into_view()).collect_view()}
+            {text_output}
         </div>
     }
 }
@@ -182,6 +239,111 @@ fn FullDefinitionView(definition: ReadSignal<Option<Definition>>) -> impl IntoVi
             } else {
                 ().into_view()
             }
+        })
+    }
+}
+
+#[derive(Debug, Clone)]
+struct Caption {
+    start_time: (usize, f32),
+    end_time: (usize, f32),
+    data: String,
+}
+
+impl Caption {
+    fn new(start_time: (usize, f32), end_time: (usize, f32), data: String) -> Self {
+        Self {
+            start_time,
+            end_time,
+            data,
+        }
+    }
+
+    fn parse_from_data(data: String) -> Vec<Caption> {
+        let blank = regex::Regex::new(r#"^[ \t]?+$"#).unwrap();
+        let timestamp = regex::Regex::new(r#"(\d{2}):([\d.]+) --&gt; (\d{2}):([\d.]+)"#).unwrap();
+        // let caption = regex::Regex::new(r#"( +- +)?(.*)"#).unwrap();
+        let caption = regex::Regex::new(r#"(.*)"#).unwrap();
+
+        let mut current_timestamp = None;
+        let mut captions = Vec::new();
+        let mut current_caption = String::new();
+
+        for line in data.lines() {
+            if blank.is_match(line) {
+                if !current_caption.is_empty() && current_timestamp.is_some() {
+                    // logging::log!("Inserting caption!");
+                    captions.push(Caption::with(current_timestamp.unwrap(), &current_caption));
+                } else {
+                    // logging::log!(
+                    //     "Found blank line, but (timestamp is some: {}) and (caption is: {})",
+                    //     current_timestamp.is_some(),
+                    //     &current_caption
+                    // );
+                }
+                current_timestamp = None;
+                current_caption = String::new();
+                continue;
+            }
+            if timestamp.is_match(line) {
+                current_timestamp = Some(Timestamp::try_from(line).unwrap());
+            } else if current_timestamp.is_some() && caption.is_match(line) {
+                // logging::log!("With line... {line}");
+                let captures: Vec<_> = caption
+                    .captures(line)
+                    .into_iter()
+                    .next()
+                    .unwrap()
+                    .iter()
+                    .filter_map(|x| x)
+                    .map(|x| x.as_str().to_owned())
+                    .collect();
+                // logging::log!("Line Captures: {:#?}", &captures);
+                let line = &captures[captures.len() - 1];
+                current_caption.push_str("\n");
+                current_caption.push_str(line);
+            }
+        }
+        if !current_caption.is_empty() && current_timestamp.is_some() {
+            // logging::log!("Inserting caption!");
+            captions.push(Caption::with(current_timestamp.unwrap(), &current_caption));
+        }
+
+        captions
+    }
+
+    fn with(timestamp: Timestamp, line: &str) -> Self {
+        Self {
+            start_time: (timestamp.start_minute, timestamp.start_second),
+            end_time: (timestamp.end_minute, timestamp.end_second),
+            data: line.to_string(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+struct Timestamp {
+    start_minute: usize,
+    start_second: f32,
+    end_minute: usize,
+    end_second: f32,
+}
+impl TryFrom<&str> for Timestamp {
+    type Error = ();
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        let timestamp = regex::Regex::new(r#"(\d{2}):([\d.]+) --&gt; (\d{2}):([\d.]+)"#).unwrap();
+        let Some(capture) = timestamp.captures(value).into_iter().next() else {
+            // logging::log!("Not a timestamp! {}", &value);
+            return Err(());
+        };
+        let parts: [_; 4] = capture.extract().1;
+        // logging::log!("Parts: {:#?}", &parts);
+        Ok(Self {
+            start_minute: parts[0].parse().unwrap(),
+            start_second: parts[1].parse().unwrap(),
+            end_minute: parts[2].parse().unwrap(),
+            end_second: parts[3].parse().unwrap(),
         })
     }
 }
