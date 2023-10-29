@@ -1,20 +1,10 @@
 # TODO
-## Felix
-- get access to dictionary / ChatGPT
-- make definition template thing
-
-## Affan
-- view youtube video
-- get subtitles
-
-## Unknown
-- make the website pretty
-
-# VIDEO
-https://www.youtube.com/watch?v=tI8OqpkOVzs
-
-subtitlers
-ducks
-ducktitles
-
 # Transcript
+
+// # Loading indicator
+// # Paste URL for main page
+# Show which words have definitions and which don't
+
+// # Make Main Page pretty
+# Figure out API thing
+

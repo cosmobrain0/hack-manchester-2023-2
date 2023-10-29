@@ -12,12 +12,12 @@ async function getWordInfo(word) {
     // console.log(data);
     // data = JSON.stringify(data);
     if (data == null || data == undefined) {
-        console.log("The end-of-input error?");
+        // console.log("The end-of-input error?");
         return null;
     }
-    console.log("request thing");
+    // console.log("request thing");
     let result = [];
-    console.log(data);
+    // console.log(data);
 
     let definition;
     let phonetics;
@@ -43,7 +43,7 @@ async function getWordInfo(word) {
         if (word == null || word == undefined || definition == null || definition == undefined || phonetics == null || phonetics == undefined) return null;
         return {word, definition, phonetics};
     } catch {
-        console.log("error with word " + word);
+        // console.log("error with word " + word);
         return null;
     }
 }   
@@ -51,7 +51,7 @@ async function getWordInfo(word) {
 let definitions, promises;
 let promisesDone = 0;
 const uploadDefinitions = () => {
-    console.log(promisesDone, promises.length);
+    // console.log(promisesDone, promises.length);
     if (promisesDone == promises.length) {
         document.getElementById("dictionary-data").innerHTML = JSON.stringify(definitions);
         console.log("yaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaay");
@@ -64,9 +64,13 @@ const uploadDefinitions = () => {
 // and stringify the array
 // and put it into the document with id "dictionary-data"
 
-async function getVideoCaptions(videoID) {
+const videoId = () => {
+    return document.getElementById("video-id").innerHTML.trim();
+}
+
+async function getVideoCaptions(videoId) {
     const accessToken = '18a5a88f47f3483cd44c88a70a2a747e';
-    const videoId = '877547033';
+    // const videoId = '877547033';
 
     const apiUrl = `https://api.vimeo.com/videos/${videoId}/texttracks`;
     const headers = {
@@ -94,22 +98,22 @@ async function getVideoCaptions(videoID) {
 
     definitions = [];
     let thing = Array.from(data.match(/[a-zA-Z]+/ig));
-    console.log(thing);
+    // console.log(thing);
     let noDuplicates = [];
     for (let i=0; i<thing.length; i++) {
         if (!noDuplicates.includes(thing[i])) noDuplicates.push(thing[i]);
     }
     promises = noDuplicates.map((x, i) => {
         setTimeout(async () => {
-            console.log("getting a thing for " + x);
+            // console.log("getting a thing for " + x);
             const definition = await getWordInfo(x.toLowerCase());
             promisesDone += 1;
             if (definition != null && definition != undefined) {
                 definitions.push(definition);
-                console.log("Defined " + x);
+                // console.log("Defined " + x);
             }
-            else console.log("Failed to define " + x);
-        }, 150*i);
+            // else console.log("Failed to define " + x);
+        }, 200*i);
     });
     console.log("loaded");
     requestAnimationFrame(uploadDefinitions);
@@ -118,4 +122,10 @@ async function getVideoCaptions(videoID) {
 
 }
 let testID = 'DxL2HoqLbyA';
-getVideoCaptions(testID).then(data=> console.log(data))
+const getCaptionsThingy = () => {
+    let id = videoId();
+    if (id.trim() == "") requestAnimationFrame(getCaptionsThingy);
+    else 
+        getVideoCaptions(videoId()).then(data=> console.log(data));
+}
+getCaptionsThingy();

@@ -47,13 +47,25 @@ fn MainPage() -> impl IntoView {
     let input_ref = create_node_ref::<Input>();
     let submit = move |_| {
         let node = input_ref.get().unwrap();
+        let capture_thing = regex::Regex::new(r#"https://vimeo\.com/(\d+)"#).unwrap();
         let path = node.value();
-        (use_navigate())(&format!("/watch/{path}"), Default::default());
+        let result: Option<[_; 1]> = capture_thing.captures(&path).map(|x| x.extract().1);
+        // (use_navigate())(&format!("/watch/{path}"), Default::default());
+        if result.is_none() {
+            // web_sys::window().unwrap().ale
+            // do nothing
+        } else {
+            (use_navigate())(
+                &format!("/watch/{path}", path = result.unwrap()[0]),
+                Default::default(),
+            );
+        }
     };
     view! {
-        <input _ref=input_ref type="text" pattern=r#"[\w\d_]+"# />
-        <button on:click=submit> "Watch Video!" </button>
-    }
+    <h1 class="title">Ducktitles</h1>
+    <p>Enter the vimeo URL here: </p>
+    <input _ref=input_ref type="text" pattern=r#"https://vimeo\.com/\d+"# id="video-input" placeholder="e.g. https://vimeo.com/877547033"/>
+    <button on:click=submit class="submit-btn"> "Watch Video!" </button>    }
 }
 
 #[component]
@@ -68,11 +80,18 @@ fn ViewPage() -> impl IntoView {
     let id = move || params_map.with(|params| params.get("id").cloned());
     if id().is_none() {
         (use_navigate())("/", Default::default());
+    } else {
+        web_sys::window()
+            .unwrap()
+            .document()
+            .unwrap()
+            .get_element_by_id("video-id")
+            .unwrap()
+            .set_inner_html(&id().unwrap());
     }
 
     let data = Signal::derive(move || data_element.inner_html());
-    let definitions: Signal<Vec<Definition>> =
-        Signal::derive(move || data.with(|x| serde_json::from_str(x).unwrap()));
+    let (definitions, set_definitions) = create_signal(false);
 
     let (current_definition, set_current_definition): (
         ReadSignal<Option<Definition>>,
@@ -100,6 +119,19 @@ fn ViewPage() -> impl IntoView {
 
     request_animation_frame(g.borrow().as_ref().unwrap());
 
+    let definitions_f = Rc::new(RefCell::new(None));
+    let definitions_g = definitions_f.clone();
+    *definitions_g.borrow_mut() = Some(Closure::wrap(Box::new(move || {
+        if get_definitions().len() != 0 {
+            logging::log!("Hi there");
+            set_definitions.set(true);
+        } else {
+            request_animation_frame(definitions_f.borrow().as_ref().unwrap());
+        };
+    }) as Box<dyn FnMut()>));
+
+    request_animation_frame(definitions_g.borrow().as_ref().unwrap());
+
     view! {
         <h1 class="title">Ducktitles</h1>
         <div id="video-and-transcript-flex-wrapper">
@@ -111,6 +143,7 @@ fn ViewPage() -> impl IntoView {
             // <Definitions definitions set_definition=set_current_definition />
             <div id = "transcript-flex-wrapper">
                 <div id="full-definition-view-wrapper">
+                    <DefinitionLoadingText definitions_signal=definitions.into() />
                     <FullDefinitionView definition={current_definition} />
                 </div>
                 <Transcript text=caption_data />
@@ -122,6 +155,16 @@ fn ViewPage() -> impl IntoView {
             <p>Created for <a href = "https://hackmanchester.co.uk" target = "_blank">Hac JR Manchester 2023</a></p>
             <p>By Affan Siddiqui and Felix Geupel</p>
         </footer>
+    }
+}
+
+#[component]
+fn DefinitionLoadingText(definitions_signal: Signal<bool>) -> impl IntoView {
+    let loaded = move || definitions_signal.get();
+    view! {
+        {move ||
+            if loaded() { "" } else { "Loading..." }
+        }
     }
 }
 
@@ -145,7 +188,7 @@ fn get_caption_data() -> Option<String> {
 #[component]
 fn Video(#[prop(into)] id: String) -> impl IntoView {
     view! {
-        <iframe id="video-player" src="https://player.vimeo.com/video/877547033?title=0&amp;byline=0&amp;portrait=0&amp;speed=0&amp;badge=0&amp;autopause=0&amp;player_id=0&amp;app_id=58479&amp;transcript=false" width={(1920/2).to_string()} height={(1080/2).to_string()} frameborder="0" allow="fullscreen; picture-in-picture" allowfullscreen title="Test Video Title" />
+        <iframe id="video-player" src=format!("https://player.vimeo.com/video/{id}?title=0&amp;byline=0&amp;portrait=0&amp;speed=0&amp;badge=0&amp;autopause=0&amp;player_id=0&amp;app_id=58479&amp;transcript=false") width={(1920/2).to_string()} height={(1080/2).to_string()} frameborder="0" allow="fullscreen; picture-in-picture" allowfullscreen title="Test Video Title" />
     }
 }
 
@@ -290,7 +333,6 @@ impl Caption {
         for line in data.lines() {
             if blank.is_match(line) {
                 if !current_caption.is_empty() && current_timestamp.is_some() {
-                    // logging::log!("Inserting caption!");
                     captions.push(Caption::with(current_timestamp.unwrap(), &current_caption));
                 } else {
                     // logging::log!(

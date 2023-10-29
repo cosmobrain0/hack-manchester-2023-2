@@ -13,6 +13,19 @@ body {
   background: #222;
   color: #ccc;
 
+  footer{
+    position: sticky;
+    bottom: 0;
+  }
+  .submit-btn{
+    padding: 0.4rem 0.5rem;
+  }
+  #video-input{
+    border-radius: 0.4rem;
+    margin: 1rem;
+    padding: 0.3rem;
+    width: 12.3rem;
+  }
   a{
     color: white;
   }
@@ -34,8 +47,20 @@ body {
     padding: .5rem .5rem;
     
   }
+  #video-and-transcript-flex-wrapper {
+    
+  #transcript-flex-wrapper {
+    
+  #transcript {
+    
+    max-height: 80vh;
+    overflow-y: scroll;
+  }}}
   #full-definition-view-wrapper{
+    box-sizing: border-box;
+    width: 40vw;
     padding: 0;
+
     
   }
   #full-definition-word{
@@ -45,6 +70,8 @@ body {
     padding-bottom: 0.5rem;
   }
   #transcript{
+    box-sizing: border-box;
+    width: 40vw;
     border: .2rem solid #fff;
     border-radius: 1rem;
     line-height: 1.4rem;
